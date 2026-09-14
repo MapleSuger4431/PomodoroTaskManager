@@ -10,7 +10,9 @@ import java.util.Date;
  */
 public class DateUtil {
 
-    /** 私有构造方法，防止工具类被实例化 */
+    /**
+     * 私有构造方法，防止工具类被实例化
+     */
     private DateUtil() {
     }
 

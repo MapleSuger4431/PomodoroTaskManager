@@ -1,25 +1,57 @@
 package com.pomodoro.ui;
 
 import com.pomodoro.model.Task;
+import com.pomodoro.service.TaskService;
+import com.pomodoro.service.TimerService;
+import com.pomodoro.util.ConsoleUtil;
+
+import java.util.List;
 
 /**
- * 番茄钟计时菜单类，负责任务选择与计时交互（骨架，具体实现待补充）
+ * 番茄计时菜单
  */
 public class TimerMenu {
 
-    /**
-     * 展示番茄钟计时菜单
-     */
+    private TimerService timerService = new TimerService();
+    private TaskService taskService = new TaskService();
+
     public void show(String userId) {
-        // TODO 展示可计时的任务列表并启动选中的计时流程
-        throw new UnsupportedOperationException("待实现");
+        while (true) {
+            System.out.println("========== 番茄计时 ==========");
+            List<Task> tasks = taskService.listTimerSelectableTasks(userId);
+
+            if (tasks.isEmpty()) {
+                System.out.println("暂无可用任务，请先在任务管理中添加");
+                System.out.println("0. 返回");
+                ConsoleUtil.pressEnterToContinue();
+                return;
+            }
+
+            for (int i = 0; i < tasks.size(); i++) {
+                System.out.println((i + 1) + ". " + tasks.get(i).getId() + " " + tasks.get(i).getTitle());
+            }
+            System.out.println("0. 返回");
+            int choice = ConsoleUtil.readInt("请选择要计时的任务：");
+
+            if (choice == 0) {
+                return;
+            }
+
+            if (choice >= 1 && choice <= tasks.size()) {
+                Task task = tasks.get(choice - 1);
+                handleStartTimer(task);
+            } else {
+                System.out.println("无效选择");
+                ConsoleUtil.pressEnterToContinue();
+            }
+        }
     }
 
     /**
-     * 对指定任务启动一次番茄钟计时
+     * 启动指定任务的计时
      */
     private void handleStartTimer(Task task) {
-        // TODO 按任务的计时模式执行倒计时或正计时并展示计时过程
-        throw new UnsupportedOperationException("待实现");
+        timerService.startSession(task);
+        ConsoleUtil.pressEnterToContinue();
     }
 }
