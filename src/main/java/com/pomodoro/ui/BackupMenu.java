@@ -11,6 +11,9 @@ public class BackupMenu {
     /** 备份业务逻辑对象 */
     private BackupService backupService = new BackupService();
 
+    /** 清屏时输出的空行数量，用于把历史输出滚出可见区域 */
+    private static final int CLEAR_BLANK_LINES = 50;
+
     /**
      * 展示备份恢复菜单
      */
@@ -28,6 +31,8 @@ public class BackupMenu {
             } else if (choice == 2) {
                 handleRestore();
             } else if (choice == 0) {
+                // 返回前清屏，把本次菜单与操作的全部历史输出清除
+                clearScreen();
                 return;
             } else {
                 System.out.println("无效选项，请重新输入。");
@@ -66,5 +71,18 @@ public class BackupMenu {
         }
         backupService.restore(path);
         ConsoleUtil.pressEnterToContinue();
+    }
+
+    /**
+     * 清除控制台历史输出：输出若干空行，把之前的菜单与操作记录滚出可见区域
+     * 说明：不调用 cmd /c cls，也不依赖 ANSI 转义序列，
+     * 保证在 IDEA 控制台、cmd、PowerShell 下都能正常清屏，不产生乱码
+     */
+    private void clearScreen() {
+        for (int i = 0; i < CLEAR_BLANK_LINES; i++) {
+            System.out.println();
+        }
+        // 立即刷新输出缓冲区，保证清屏效果在返回上一级菜单前生效
+        System.out.flush();
     }
 }
