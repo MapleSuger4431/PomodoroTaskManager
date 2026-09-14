@@ -134,6 +134,42 @@ public class TaskService {
     }
 
     /**
+     * 在当前用户的未删除任务中按 ID 或标题查找任务（按 userId 隔离数据）：
+     * 先按 ID 精确匹配（命中即返回），再按标题精确匹配，最后按标题包含匹配，
+     * 返回全部匹配结果，由界面在多个匹配时让用户进一步选择
+     */
+    public List<Task> searchTasks(String userId, String keyword) {
+        List<Task> tasks = taskDao.findNotDeletedByUserId(userId);
+        List<Task> matched = new ArrayList<>();
+        if (keyword == null || keyword.isEmpty()) {
+            return matched;
+        }
+        // 1. 输入形如 T001 时优先按 ID 精确匹配，ID 唯一命中即返回
+        for (Task task : tasks) {
+            if (task.getId().equals(keyword)) {
+                matched.add(task);
+                return matched;
+            }
+        }
+        // 2. 按标题精确匹配
+        for (Task task : tasks) {
+            if (task.getTitle().equals(keyword)) {
+                matched.add(task);
+            }
+        }
+        if (!matched.isEmpty()) {
+            return matched;
+        }
+        // 3. 按标题包含匹配，方便只记得部分标题时使用
+        for (Task task : tasks) {
+            if (task.getTitle().contains(keyword)) {
+                matched.add(task);
+            }
+        }
+        return matched;
+    }
+
+    /**
      * 查询指定任务在指定日期的每日记录，找不到时返回 null（供界面展示当日进度）
      */
     public TaskDailyRecord getDailyRecord(String taskId, Date date) {

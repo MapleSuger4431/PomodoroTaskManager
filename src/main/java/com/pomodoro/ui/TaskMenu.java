@@ -137,13 +137,9 @@ public class TaskMenu {
             return;
         }
         printTaskTable(userId, tasks);
-        String taskId = ConsoleUtil.readLine("请输入要修改的任务 ID（直接回车返回）：");
-        if (taskId.isEmpty()) {
-            return;
-        }
-        Task task = findTaskById(tasks, taskId);
+        // 支持按 ID 或标题两种方式定位任务
+        Task task = selectTask(userId, "请输入要修改的任务 ID 或标题（直接回车返回）：");
         if (task == null) {
-            System.out.println("未找到该任务。");
             return;
         }
         String title = ConsoleUtil.readLine("新标题（直接回车保持不变）：");
@@ -186,42 +182,70 @@ public class TaskMenu {
     }
 
     /**
-     * 处理删除任务：输入任务 ID 后逻辑删除
+     * 处理删除任务：输入任务 ID 或标题后逻辑删除
      */
     private void handleDelete(String userId) {
-        String taskId = ConsoleUtil.readLine("请输入要删除的任务 ID（直接回车返回）：");
-        if (taskId.isEmpty()) {
+        // 支持按 ID 或标题两种方式定位任务
+        Task task = selectTask(userId, "请输入要删除的任务 ID 或标题（直接回车返回）：");
+        if (task == null) {
             return;
         }
-        List<Task> tasks = taskService.listTasks(userId);
-        if (findTaskById(tasks, taskId) == null) {
-            System.out.println("未找到该任务。");
-            return;
-        }
-        taskService.deleteTask(taskId);
+        taskService.deleteTask(task.getId());
         System.out.println("删除成功！");
     }
 
     /**
-     * 处理标记完成：输入任务 ID 后将任务标记为已完成
+     * 处理标记完成：输入任务 ID 或标题后将任务标记为已完成
      */
     private void handleMarkDone(String userId) {
-        String taskId = ConsoleUtil.readLine("请输入要标记完成的任务 ID（直接回车返回）：");
-        if (taskId.isEmpty()) {
-            return;
-        }
-        List<Task> tasks = taskService.listTasks(userId);
-        Task task = findTaskById(tasks, taskId);
+        // 支持按 ID 或标题两种方式定位任务
+        Task task = selectTask(userId, "请输入要标记完成的任务 ID 或标题（直接回车返回）：");
         if (task == null) {
-            System.out.println("未找到该任务。");
             return;
         }
         if (task.getStatus() == TaskStatus.DONE) {
             System.out.println("该任务已是完成状态。");
             return;
         }
-        taskService.markDone(taskId);
+        taskService.markDone(task.getId());
         System.out.println("标记完成成功！");
+    }
+
+    /**
+     * 按 ID 或标题选择任务：单个匹配直接返回，多个匹配时列出候选让用户按序号选择，
+     * 未匹配或用户取消时返回 null
+     */
+    private Task selectTask(String userId, String prompt) {
+        String input = ConsoleUtil.readLine(prompt);
+        if (input.isEmpty()) {
+            return null;
+        }
+        List<Task> matched = taskService.searchTasks(userId, input);
+        if (matched.isEmpty()) {
+            System.out.println("未找到该任务。");
+            return null;
+        }
+        if (matched.size() == 1) {
+            return matched.get(0);
+        }
+        // 输入命中多个任务（同标题或标题包含该关键词）时，列出候选由用户选择
+        System.out.println("找到多个匹配的任务：");
+        for (int i = 0; i < matched.size(); i++) {
+            Task task = matched.get(i);
+            System.out.println((i + 1) + ". " + pad(task.getId(), 6) + pad(task.getTitle(), 18)
+                    + pad(task.getType() == TaskType.REPEAT_DATE ? "按日期" : "按次数", 8)
+                    + statusLabel(task.getStatus()));
+        }
+        while (true) {
+            int choice = ConsoleUtil.readInt("请输入序号选择（0 返回）：");
+            if (choice == 0) {
+                return null;
+            }
+            if (choice >= 1 && choice <= matched.size()) {
+                return matched.get(choice - 1);
+            }
+            System.out.println("输入无效，请输入 0-" + matched.size() + "。");
+        }
     }
 
     /**
@@ -443,18 +467,6 @@ public class TaskMenu {
             return Priority.MEDIUM;
         }
         return Priority.HIGH;
-    }
-
-    /**
-     * 在任务列表中查找指定 ID 的任务，找不到时返回 null
-     */
-    private Task findTaskById(List<Task> tasks, String taskId) {
-        for (Task task : tasks) {
-            if (task.getId().equals(taskId)) {
-                return task;
-            }
-        }
-        return null;
     }
 
     /**
