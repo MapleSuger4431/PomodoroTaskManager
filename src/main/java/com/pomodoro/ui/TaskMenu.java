@@ -57,6 +57,7 @@ public class TaskMenu {
                     handleMarkDone(userId);
                     break;
                 case 0:
+                    clearConsole();
                     return;
                 default:
                     System.out.println("无效的选择，请重新输入。");
@@ -311,6 +312,16 @@ public class TaskMenu {
             line.append('-');
         }
         System.out.println(line);
+    }
+
+    /**
+     * 清空控制台显示：输出若干空行把旧内容顶出当前可视区域，防止输出越积越多显得臃肿。
+     * 不使用 ANSI 清屏转义序列，因为部分终端（如 IDEA 控制台）不识别转义序列会输出乱码
+     */
+    private static void clearConsole() {
+        for (int i = 0; i < 50; i++) {
+            System.out.println();
+        }
     }
 
     /**
