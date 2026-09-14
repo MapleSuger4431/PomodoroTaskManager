@@ -83,6 +83,8 @@ public class ConsoleMenu {
                 break;
             case 0:
                 userService.logout();
+                // 先清屏，再在干净的屏幕上打印提示与新的登录菜单
+                clearScreen();
                 System.out.println("已退出登录。");
                 break;
             default:
@@ -122,6 +124,25 @@ public class ConsoleMenu {
             System.out.println("登录成功");
         } catch (Exception e) {
             System.out.println(e.getMessage());
+        }
+    }
+
+    /**
+     * 清空控制台屏幕，便于在干净的屏幕上展示新的菜单
+     */
+    private void clearScreen() {
+        // 先输出 ANSI 清屏转义序列（IDEA 控制台等支持 VT 的终端可直接生效）
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+        try {
+            // 再调用系统清屏命令兜底，清除不支持 ANSI 的终端上残留的转义字符
+            if (System.getProperty("os.name").toLowerCase().contains("win")) {
+                new ProcessBuilder("cmd", "/c", "cls").inheritIO().start().waitFor();
+            } else {
+                Runtime.getRuntime().exec("clear").waitFor();
+            }
+        } catch (Exception e) {
+            // 系统清屏命令执行失败时忽略，ANSI 转义序列已尽力清屏
         }
     }
 }
