@@ -57,6 +57,7 @@ public class TaskMenu {
                     handleMarkDone(userId);
                     break;
                 case 0:
+                    clearConsole();
                     return;
                 default:
                     System.out.println("无效的选择，请重新输入。");
@@ -101,14 +102,16 @@ public class TaskMenu {
                 task.setDueDate(readDateTime("请输入截止时间 (yyyy-MM-dd HH:mm)："));
             }
         } else {
-            // 按日期任务：设置开始日期、连续天数、每日目标次数与每日截止时间
+            // 按日期任务：设置开始日期、（连续天数或无限重复）、每日目标次数与每日截止时间
             task.setType(TaskType.REPEAT_DATE);
             task.setStartDate(readDate("请输入开始日期 (yyyy-MM-dd，直接回车默认今天)："));
             if (ConsoleUtil.readYesNo("是否无限重复？(y/n)：")) {
-                System.out.println("暂不支持无限重复任务。");
-                return;
+                // 无限重复任务用 repeatDays = -1 标记：每日记录从开始日期一直生成到今天，
+                // 总进度不显示"已完成/连续"，只显示已完成天数
+                task.setRepeatDays(-1);
+            } else {
+                task.setRepeatDays(readPositiveInt("请输入连续天数："));
             }
-            task.setRepeatDays(readPositiveInt("请输入连续天数："));
             task.setTargetCount(readPositiveInt("请输入每日目标次数："));
             task.setDailyDeadline(readDailyDeadline());
         }
@@ -309,6 +312,16 @@ public class TaskMenu {
             line.append('-');
         }
         System.out.println(line);
+    }
+
+    /**
+     * 清空控制台显示：输出若干空行把旧内容顶出当前可视区域，防止输出越积越多显得臃肿。
+     * 不使用 ANSI 清屏转义序列，因为部分终端（如 IDEA 控制台）不识别转义序列会输出乱码
+     */
+    private static void clearConsole() {
+        for (int i = 0; i < 50; i++) {
+            System.out.println();
+        }
     }
 
     /**
