@@ -3,6 +3,8 @@ package com.pomodoro.ui;
 import com.pomodoro.service.BackupService;
 import com.pomodoro.util.ConsoleUtil;
 
+import java.io.File;
+
 /**
  * 备份恢复菜单类，负责数据备份与恢复的交互
  */
@@ -47,7 +49,7 @@ public class BackupMenu {
     private void handleBackup() {
         // 默认备份文件路径：项目运行目录下的 backup_all.ser，所有用户共用
         String defaultPath = "backup_all.ser";
-        String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "）：");
+        String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "，支持任意自定义路径）：");
         if (path.isEmpty()) {
             path = defaultPath;
         }
@@ -62,9 +64,16 @@ public class BackupMenu {
     private void handleRestore() {
         // 默认恢复文件路径：与备份默认路径一致，即项目运行目录下的 backup_all.ser
         String defaultPath = "backup_all.ser";
-        String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "）：");
+        String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "，支持任意自定义路径）：");
         if (path.isEmpty()) {
             path = defaultPath;
+        }
+        // 恢复前校验备份文件是否存在，避免确认后才失败
+        if (!new File(path).exists()) {
+            System.out.println("备份文件不存在：" + new File(path).getAbsolutePath());
+            System.out.println("请检查路径后重试。");
+            ConsoleUtil.pressEnterToContinue();
+            return;
         }
         // 恢复会清空并覆盖当前全部数据，必须二次确认
         boolean confirmed = ConsoleUtil.readYesNo("警告：恢复会覆盖当前所有数据，确认？(y/n)");

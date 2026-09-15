@@ -16,6 +16,7 @@ import com.pomodoro.model.User;
 import com.pomodoro.util.DBUtil;
 import com.pomodoro.util.SerializeUtil;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -56,8 +57,14 @@ public class BackupService {
                 data.getRecords().addAll(recordDao.findByUserId(uid));
                 data.getDailyRecords().addAll(dailyDao.findByUserId(uid));
             }
+            // 自定义路径支持：若路径中的上级目录不存在则自动创建，保证任意自定义路径可用
+            File file = new File(filePath);
+            File parent = file.getAbsoluteFile().getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
             SerializeUtil.writeObject(data, filePath);
-            System.out.println("备份成功！已备份全部用户数据，文件路径：" + filePath);
+            System.out.println("备份成功！已备份全部用户数据，文件路径：" + file.getAbsoluteFile());
         } catch (Exception e) {
             System.out.println("备份失败：" + e.getMessage());
             e.printStackTrace();
