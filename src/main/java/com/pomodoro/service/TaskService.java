@@ -51,10 +51,24 @@ public class TaskService {
     }
 
     /**
-     * 更新任务信息
+     * 更新任务信息；按日期重复任务更新后补默认值并立即刷新每日记录，
+     * 保证修改类型、开始日期、重复天数后当天的记录与逾期状态是最新的
      */
     public void updateTask(Task task) {
+        // 按日期重复任务补默认值：每日截止时间默认 23:59，开始日期默认今天（与新增任务逻辑一致）
+        if (task.getType() == TaskType.REPEAT_DATE) {
+            if (task.getDailyDeadline() == null || task.getDailyDeadline().trim().isEmpty()) {
+                task.setDailyDeadline("23:59");
+            }
+            if (task.getStartDate() == null) {
+                task.setStartDate(new Date());
+            }
+        }
         taskDao.update(task);
+        // 更新为按日期重复任务后立即补齐每日记录，例如从按次数改成按日期时需要补今天的记录
+        if (task.getType() == TaskType.REPEAT_DATE) {
+            refreshDailyRecords(task.getUserId());
+        }
     }
 
     /**
