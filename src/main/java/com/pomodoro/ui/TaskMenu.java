@@ -13,6 +13,7 @@ import com.pomodoro.util.DateUtil;
 import java.text.ParseException;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 任务管理菜单类，负责任务的增删改查控制台交互
@@ -43,18 +44,23 @@ public class TaskMenu {
             switch (choice) {
                 case 1:
                     handleList(userId);
+                    pressEnter();
                     break;
                 case 2:
                     handleCreate(userId);
+                    pressEnter();
                     break;
                 case 3:
                     handleUpdate(userId);
+                    pressEnter();
                     break;
                 case 4:
                     handleDelete(userId);
+                    pressEnter();
                     break;
                 case 5:
                     handleMarkDone(userId);
+                    pressEnter();
                     break;
                 case 0:
                     clearConsole();
@@ -131,7 +137,8 @@ public class TaskMenu {
     }
 
     /**
-     * 处理修改任务：只允许修改标题、描述、标签与优先级，直接回车保持原值
+     * 处理修改任务：可修改新增任务时填写的全部信息（标题、描述、标签、优先级、任务类型、
+     * 类型相关字段、计时模式与时长），直接回车表示保持原值，输入 0 表示清除可选字段
      */
     private void handleUpdate(String userId) {
         List<Task> tasks = taskService.listTasks(userId);
@@ -145,6 +152,16 @@ public class TaskMenu {
         if (task == null) {
             return;
         }
+        updateTaskFields(task);
+        taskService.updateTask(task);
+        System.out.println("修改成功！");
+    }
+
+    /**
+     * 逐个提示修改新增任务时的全部字段：直接回车表示保持原值，输入内容则更新
+     */
+    private void updateTaskFields(Task task) {
+        // 1. 基本信息：标题、描述、标签
         String title = ConsoleUtil.readLine("新标题（直接回车保持不变）：");
         if (!title.isEmpty()) {
             task.setTitle(title);
@@ -157,9 +174,122 @@ public class TaskMenu {
         if (!tags.isEmpty()) {
             task.setTags(tags);
         }
+        // 2. 优先级 1低 2中 3高
         updatePriority(task);
-        taskService.updateTask(task);
-        System.out.println("修改成功！");
+        // 3. 任务类型 1按次数 2按日期（允许修改，改为按日期后由业务层自动刷新每日记录）
+        while (true) {
+            String typeLine = ConsoleUtil.readLine("任务类型：1. 按次数  2. 按日期（直接回车保持不变）：");
+            if (typeLine.isEmpty()) {
+                break;
+            }
+            try {
+                int typeChoice = Integer.parseInt(typeLine);
+                if (typeChoice == 1) {
+                    task.setType(TaskType.REPEAT_COUNT);
+                    break;
+                }
+                if (typeChoice == 2) {
+                    task.setType(TaskType.REPEAT_DATE);
+                    break;
+                }
+            } catch (NumberFormatException e) {
+                // 输入不是数字时继续循环重新读取
+            }
+            System.out.println("输入无效，请输入 1 或 2。");
+        }
+        // 4. 类型相关的字段
+        if (task.getType() == TaskType.REPEAT_COUNT) {
+            // 按次数任务：目标完成次数与截止时间
+            int target = readPositiveIntOrKeep("目标完成次数（直接回车保持不变）：");
+            if (target != -1) {
+                task.setTargetCount(target);
+            }
+            while (true) {
+                String dueLine = ConsoleUtil.readLine("截止时间 (yyyy-MM-dd HH:mm，直接回车保持不变，输入 0 清除)：");
+                if (dueLine.isEmpty()) {
+                    break;
+                }
+                if (dueLine.trim().equals("0")) {
+                    task.setDueDate(null);
+                    break;
+                }
+                try {
+                    task.setDueDate(DateUtil.parse(dueLine, "yyyy-MM-dd HH:mm"));
+                    break;
+                } catch (ParseException e) {
+                    System.out.println("时间格式无效，请按 yyyy-MM-dd HH:mm 输入。");
+                }
+            }
+        } else {
+            // 按日期任务：开始日期、无限/连续天数、每日目标次数、每日截止时间
+            while (true) {
+                String startLine = ConsoleUtil.readLine("开始日期 (yyyy-MM-dd，直接回车保持不变，输入 0 设为今天)：");
+                if (startLine.isEmpty()) {
+                    break;
+                }
+                if (startLine.trim().equals("0")) {
+                    task.setStartDate(new Date());
+                    break;
+                }
+                try {
+                    task.setStartDate(DateUtil.parse(startLine, "yyyy-MM-dd"));
+                    break;
+                } catch (ParseException e) {
+                    System.out.println("日期格式无效，请按 yyyy-MM-dd 输入。");
+                }
+            }
+            while (true) {
+                String infiniteLine = ConsoleUtil.readLine("无限重复（y 无限 / n 有限，直接回车保持不变）：");
+                if (infiniteLine.isEmpty()) {
+                    break;
+                }
+                String lower = infiniteLine.trim().toLowerCase(Locale.ROOT);
+                if ("y".equals(lower) || "yes".equals(lower)) {
+                    task.setRepeatDays(-1);
+                    break;
+                }
+                if ("n".equals(lower) || "no".equals(lower)) {
+                    task.setRepeatDays(readPositiveInt("请输入连续天数："));
+                    break;
+                }
+                System.out.println("输入无效，请输入 y 或 n。");
+            }
+            int target = readPositiveIntOrKeep("每日目标次数（直接回车保持不变）：");
+            if (target != -1) {
+                task.setTargetCount(target);
+            }
+            String deadline = readDailyDeadlineOrKeep("每日截止时间 HH:mm（直接回车保持不变）：");
+            if (deadline != null) {
+                task.setDailyDeadline(deadline);
+            }
+        }
+        // 5. 计时模式与倒计时时长
+        while (true) {
+            String modeLine = ConsoleUtil.readLine("计时模式：1. 倒计时  2. 正计时（直接回车保持不变）：");
+            if (modeLine.isEmpty()) {
+                break;
+            }
+            try {
+                int modeChoice = Integer.parseInt(modeLine);
+                if (modeChoice == 1) {
+                    task.setTimerMode(TimerMode.COUNTDOWN);
+                    break;
+                }
+                if (modeChoice == 2) {
+                    task.setTimerMode(TimerMode.COUNT_UP);
+                    break;
+                }
+            } catch (NumberFormatException e) {
+                // 输入不是数字时继续循环重新读取
+            }
+            System.out.println("输入无效，请输入 1 或 2。");
+        }
+        if (task.getTimerMode() == TimerMode.COUNTDOWN) {
+            int minutes = readPositiveIntOrKeep("倒计时时长（分钟，直接回车保持不变）：");
+            if (minutes != -1) {
+                task.setPomodoroMinutes(minutes);
+            }
+        }
     }
 
     /**
@@ -315,13 +445,24 @@ public class TaskMenu {
     }
 
     /**
-     * 清空控制台显示：输出若干空行把旧内容顶出当前可视区域，防止输出越积越多显得臃肿。
-     * 不使用 ANSI 清屏转义序列，因为部分终端（如 IDEA 控制台）不识别转义序列会输出乱码
+     * 清空终端中已经输出的内容：先真正删除屏幕上的全部信息，
+     * 再由上一级菜单（ConsoleMenu）打印主菜单，避免历史输出堆积显得臃肿。
+     * 使用 ANSI 清屏转义序列：\033[H 把光标移回左上角，\033[2J 清除整个屏幕，
+     * cmd / PowerShell / Windows Terminal / IDEA 运行控制台均支持
      */
     private static void clearConsole() {
-        for (int i = 0; i < 50; i++) {
-            System.out.println();
-        }
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
+
+    /**
+     * 提示按回车键继续：先刷新输出缓冲区让提示立刻显示（避免提示迟迟不出现造成卡顿），
+     * 再用控制台工具一次读取完整一行的回车，避免把回车输入遗留到下一个输入提示中
+     */
+    private static void pressEnter() {
+        System.out.print("按回车键继续...");
+        System.out.flush();
+        ConsoleUtil.readLine("");
     }
 
     /**
@@ -420,6 +561,27 @@ public class TaskMenu {
     }
 
     /**
+     * 读取大于 0 的整数，直接回车时返回 -1 表示保持不变
+     */
+    private int readPositiveIntOrKeep(String prompt) {
+        while (true) {
+            String line = ConsoleUtil.readLine(prompt);
+            if (line.isEmpty()) {
+                return -1;
+            }
+            try {
+                int value = Integer.parseInt(line);
+                if (value >= 1) {
+                    return value;
+                }
+            } catch (NumberFormatException e) {
+                // 输入不是数字时继续循环重新读取
+            }
+            System.out.println("输入无效，请输入大于 0 的整数，直接回车保持不变。");
+        }
+    }
+
+    /**
      * 读取 yyyy-MM-dd 日期，直接回车时返回 null（由业务层默认为今天）
      */
     private Date readDate(String prompt) {
@@ -461,6 +623,22 @@ public class TaskMenu {
             String line = ConsoleUtil.readLine("请输入每日截止时间 HH:mm（直接回车默认 23:59）：");
             if (line.isEmpty()) {
                 return "23:59";
+            }
+            if (line.matches("([01]?\\d|2[0-3]):[0-5]\\d")) {
+                return line;
+            }
+            System.out.println("时间格式无效，请按 HH:mm 输入，例如 22:30。");
+        }
+    }
+
+    /**
+     * 读取每日截止时间 HH:mm，直接回车时返回 null 表示保持不变
+     */
+    private String readDailyDeadlineOrKeep(String prompt) {
+        while (true) {
+            String line = ConsoleUtil.readLine(prompt);
+            if (line.isEmpty()) {
+                return null;
             }
             if (line.matches("([01]?\\d|2[0-3]):[0-5]\\d")) {
                 return line;
