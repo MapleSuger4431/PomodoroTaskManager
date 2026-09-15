@@ -27,9 +27,9 @@ public class BackupMenu {
             System.out.println("==============================");
             int choice = ConsoleUtil.readInt("请选择：");
             if (choice == 1) {
-                handleBackup(userId);
+                handleBackup();
             } else if (choice == 2) {
-                handleRestore(userId);
+                handleRestore();
             } else if (choice == 0) {
                 // 返回前清屏，把本次菜单与操作的全部历史输出清除
                 clearScreen();
@@ -42,24 +42,26 @@ public class BackupMenu {
 
     /**
      * 处理数据备份：读取备份文件路径（回车使用默认路径）并执行备份
+     * 备份内容为全部用户数据，任何用户登录后都可以使用同一份备份文件
      */
-    private void handleBackup(String userId) {
-        // 默认备份文件路径：项目运行目录下的 backup_<userId>.ser
-        String defaultPath = "backup_" + userId + ".ser";
+    private void handleBackup() {
+        // 默认备份文件路径：项目运行目录下的 backup_all.ser，所有用户共用
+        String defaultPath = "backup_all.ser";
         String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "）：");
         if (path.isEmpty()) {
             path = defaultPath;
         }
-        backupService.backup(userId, path);
+        backupService.backup(path);
         ConsoleUtil.pressEnterToContinue();
     }
 
     /**
      * 处理数据恢复：读取恢复文件路径（回车使用默认路径），二次确认后执行恢复
+     * 恢复的是全库数据，任何用户登录后都可以执行恢复
      */
-    private void handleRestore(String userId) {
-        // 默认恢复文件路径：与备份默认路径一致，即项目运行目录下的 backup_<userId>.ser
-        String defaultPath = "backup_" + userId + ".ser";
+    private void handleRestore() {
+        // 默认恢复文件路径：与备份默认路径一致，即项目运行目录下的 backup_all.ser
+        String defaultPath = "backup_all.ser";
         String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "）：");
         if (path.isEmpty()) {
             path = defaultPath;

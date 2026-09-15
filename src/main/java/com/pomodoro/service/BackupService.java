@@ -42,18 +42,22 @@ public class BackupService {
     private TaskDailyRecordDao dailyDao = new TaskDailyRecordDaoImpl();
 
     /**
-     * 备份指定用户的全部数据到文件
-     * users 表为全量备份（恢复时需要全部用户才能保证外键完整），其余按用户过滤
+     * 备份全部用户的系统数据到文件（所有用户共用同一份全量备份）
+     * users 表全量备份，其余三张表遍历每个用户汇总，保证恢复后所有用户数据完整
      */
-    public void backup(String userId, String filePath) {
+    public void backup(String filePath) {
         try {
             BackupData data = new BackupData();
             data.setUsers(userDao.findAll());
-            data.setTasks(taskDao.findByUserId(userId));
-            data.setRecords(recordDao.findByUserId(userId));
-            data.setDailyRecords(dailyDao.findByUserId(userId));
+            // 遍历每个用户，汇总其任务、每日记录与番茄钟记录，实现全用户备份
+            for (User u : data.getUsers()) {
+                String uid = u.getId();
+                data.getTasks().addAll(taskDao.findByUserId(uid));
+                data.getRecords().addAll(recordDao.findByUserId(uid));
+                data.getDailyRecords().addAll(dailyDao.findByUserId(uid));
+            }
             SerializeUtil.writeObject(data, filePath);
-            System.out.println("备份成功！文件路径：" + filePath);
+            System.out.println("备份成功！已备份全部用户数据，文件路径：" + filePath);
         } catch (Exception e) {
             System.out.println("备份失败：" + e.getMessage());
             e.printStackTrace();
