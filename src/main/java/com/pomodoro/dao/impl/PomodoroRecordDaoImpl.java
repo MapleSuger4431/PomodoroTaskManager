@@ -31,7 +31,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
                 record = mapRow(rs);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, rs);
         }
@@ -53,7 +54,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
                 list.add(mapRow(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, rs);
         }
@@ -83,7 +85,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
             pstmt.setString(7, record.getId());
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, null);
         }
@@ -100,7 +103,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
             pstmt.setString(1, id);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, null);
         }
@@ -116,7 +120,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
             pstmt = conn.prepareStatement(sql);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, null);
         }
@@ -138,7 +143,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
                 list.add(mapRow(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, rs);
         }
@@ -191,7 +197,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
                 list.add(mapRow(rs));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, rs);
         }
@@ -215,7 +222,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
             pstmt.setInt(7, record.getStatus().getCode());
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, null);
         }
@@ -239,7 +247,8 @@ public class PomodoroRecordDaoImpl implements PomodoroRecordDao {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            // 不再吞掉异常静默失败：数据库操作失败时向上抛出运行时异常，避免记录静默丢失
+            throw new RuntimeException("番茄钟记录数据库操作失败：" + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, rs);
         }

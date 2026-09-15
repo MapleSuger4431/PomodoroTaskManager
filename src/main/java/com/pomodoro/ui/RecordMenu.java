@@ -72,8 +72,14 @@ public class RecordMenu {
      */
     private void handleByDate(String userId) {
         String dateStr = ConsoleUtil.readLine("请输入日期（yyyy-MM-dd）：");
+        if (dateStr.isEmpty()) {
+            System.out.println("日期不能为空");
+            return;
+        }
+        // 严格解析：setLenient(false) 拦截 2026-13-45 这类会被滚动成其他日期的非法输入
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Date date = null;
+        sdf.setLenient(false);
+        Date date;
         try {
             date = sdf.parse(dateStr);
         } catch (ParseException e) {

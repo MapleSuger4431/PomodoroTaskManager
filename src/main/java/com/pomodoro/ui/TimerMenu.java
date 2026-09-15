@@ -16,6 +16,9 @@ public class TimerMenu {
     private TaskService taskService = new TaskService();
 
     public void show(String userId) {
+        // 进入菜单先刷新每日记录：保证按日期重复的任务在跨天后也生成今天的记录，
+        // 否则前一天创建的任务计时完成时当日进度不会累计
+        taskService.refreshDailyRecords(userId);
         while (true) {
             System.out.println("========== 番茄计时 ==========");
             List<Task> tasks = taskService.listTimerSelectableTasks(userId);

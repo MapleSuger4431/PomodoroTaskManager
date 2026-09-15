@@ -14,8 +14,9 @@ import com.pomodoro.model.enums.TaskType;
 import com.pomodoro.model.enums.TimerMode;
 import com.pomodoro.util.DateUtil;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.Date;
-import java.util.Scanner;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,6 +46,8 @@ public class TimerService {
         System.out.println("按回车可暂停计时");
         System.out.println("==================================");
 
+        // 记录本次会话的真实开始时间，用于番茄记录的 start_time，避免用结束时间倒推造成偏差
+        final Date sessionStart = new Date();
         final int totalSeconds = task.getPomodoroMinutes() * 60;
         final AtomicBoolean running = new AtomicBoolean(true);
         final AtomicBoolean paused = new AtomicBoolean(false);
@@ -87,15 +90,25 @@ public class TimerService {
             }
         });
 
-        // 输入守护线程
+        // 输入守护线程：非阻塞轮询标准输入，不再新建 Scanner。
+        // 计时结束后线程随 running 标志自然退出，不会残留阻塞在输入流上抢走菜单输入
         Thread inputThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                Scanner scanner = new Scanner(System.in);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
                 while (running.get()) {
-                    if (scanner.hasNextLine()) {
-                        String line = scanner.nextLine().trim();
-                        commandQueue.offer(line);
+                    try {
+                        if (System.in.available() > 0) {
+                            String line = reader.readLine();
+                            if (line != null) {
+                                commandQueue.offer(line.trim());
+                            }
+                        } else {
+                            Thread.sleep(100);
+                        }
+                    } catch (Exception e) {
+                        // 读取输入异常时结束输入线程，不影响计时主流程
+                        return;
                     }
                 }
             }
@@ -111,7 +124,7 @@ public class TimerService {
             if (task.getTimerMode() == TimerMode.COUNTDOWN
                     && elapsedSeconds.get() >= totalSeconds) {
                 running.set(false);
-                onFinish(task, totalSeconds);
+                onFinish(task, totalSeconds, sessionStart);
                 return;
             }
 
@@ -128,11 +141,11 @@ public class TimerService {
                         System.out.print("继续计时");
                     } else if ("a".equalsIgnoreCase(cmd)) {
                         running.set(false);
-                        onAbandon(task, elapsedSeconds.get());
+                        onAbandon(task, elapsedSeconds.get(), sessionStart);
                         return;
                     } else if ("f".equalsIgnoreCase(cmd)) {
                         running.set(false);
-                        onFinish(task, elapsedSeconds.get());
+                        onFinish(task, elapsedSeconds.get(), sessionStart);
                         return;
                     } else {
                         System.out.println("无效命令，输入 p 继续，a 放弃，f 完成");
@@ -152,12 +165,12 @@ public class TimerService {
     /**
      * 计时完成回调
      */
-    private void onFinish(Task task, int duration) {
+    private void onFinish(Task task, int duration, Date sessionStart) {
         Date now = new Date();
         PomodoroRecord record = new PomodoroRecord();
         record.setUserId(task.getUserId());
         record.setTaskId(task.getId());
-        record.setStartTime(new Date(now.getTime() - duration * 1000L));
+        record.setStartTime(sessionStart);
         record.setEndTime(now);
         record.setDuration(duration);
         record.setStatus(RecordStatus.FINISHED);
@@ -189,12 +202,12 @@ public class TimerService {
     /**
      * 放弃计时回调
      */
-    private void onAbandon(Task task, int duration) {
+    private void onAbandon(Task task, int duration, Date sessionStart) {
         Date now = new Date();
         PomodoroRecord record = new PomodoroRecord();
         record.setUserId(task.getUserId());
         record.setTaskId(task.getId());
-        record.setStartTime(new Date(now.getTime() - duration * 1000L));
+        record.setStartTime(sessionStart);
         record.setEndTime(now);
         record.setDuration(duration);
         record.setStatus(RecordStatus.ABANDONED);

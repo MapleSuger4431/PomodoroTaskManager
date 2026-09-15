@@ -8,6 +8,7 @@ import com.pomodoro.dao.impl.TaskDaoImpl;
 import com.pomodoro.dao.impl.TaskDailyRecordDaoImpl;
 import com.pomodoro.model.Task;
 import com.pomodoro.model.TaskDailyRecord;
+import com.pomodoro.model.enums.TaskStatus;
 import com.pomodoro.model.enums.TaskType;
 import com.pomodoro.util.DBUtil;
 import com.pomodoro.util.DateUtil;
@@ -24,7 +25,7 @@ import java.util.List;
  * 统计口径说明：
  * - 完成次数/专注时长：pomodoro_records 中 status=FINISHED 的记录，不加 deleted 过滤（含已删除任务的历史数据）
  * - 本周：周一 00:00:00 至周日 23:59:59
- * - 未完成：REPEAT_COUNT 任务按 due_date 已过且未达标计 1 次；REPEAT_DATE 任务按每日记录 overdue 条数累计
+ * - 未完成：未删除的 REPEAT_COUNT 任务中未达标且未标记完成的计 1 次；REPEAT_DATE 任务按每日记录 overdue 条数累计
  */
 public class StatsService {
 
@@ -75,21 +76,19 @@ public class StatsService {
 
     /**
      * 统计用户未完成的任务数，展示用词统一为"未完成"
-     * 两部分相加：
-     * 1. REPEAT_COUNT 任务：due_date 已过且 completedCount < targetCount，每个任务计 1 次
+     * 口径与 RecordMenu 的"查询未完成任务"保持一致：
+     * 1. REPEAT_COUNT 任务：完成次数未达目标且未被手动标记完成，每个任务计 1 次（不再依赖截止时间）
      * 2. REPEAT_DATE 任务：task_daily_records 中 overdue=true 的记录数，每条计 1 次
-     * 注意：不加 deleted 过滤，包含已逻辑删除任务的历史数据
+     * 已逻辑删除的任务不再计入，避免删除任务后统计数字不减少的观感问题
      */
     public int getUnfinishedCount(String userId) {
         int count = 0;
-        Date now = new Date();
-        // 第一部分：按次数任务，截止日期已过且未达目标次数
-        List<Task> tasks = taskDao.findByUserId(userId);
+        // 第一部分：按次数任务，完成次数未达目标且未被手动标记完成
+        List<Task> tasks = taskDao.findNotDeletedByUserId(userId);
         for (Task task : tasks) {
             if (task.getType() == TaskType.REPEAT_COUNT
-                    && task.getDueDate() != null
-                    && task.getDueDate().before(now)
-                    && task.getCompletedCount() < task.getTargetCount()) {
+                    && task.getCompletedCount() < task.getTargetCount()
+                    && task.getStatus() != TaskStatus.DONE) {
                 count++;
             }
         }
