@@ -41,7 +41,10 @@ public class TimerService {
         System.out.println("========== 番茄计时开始 ==========");
         System.out.println("任务：" + task.getTitle());
         System.out.println("模式：" + (task.getTimerMode() == TimerMode.COUNTDOWN ? "倒计时" : "正计时"));
-        System.out.println("时长：" + task.getPomodoroMinutes() + " 分钟");
+// 仅倒计时模式显示预设总时长
+        if (task.getTimerMode() == TimerMode.COUNTDOWN) {
+            System.out.println("时长：" + task.getPomodoroMinutes() + " 分钟");
+        }
         System.out.println("按回车可暂停计时");
         System.out.println("==================================");
 
