@@ -37,3 +37,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### 运行时备份序列化文件 ###
+*.ser
