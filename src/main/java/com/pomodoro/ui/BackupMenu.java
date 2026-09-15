@@ -68,9 +68,23 @@ public class BackupMenu {
         if (path.isEmpty()) {
             path = defaultPath;
         }
+        // 自定义路径支持：输入的是目录时，自动尝试该目录下的默认备份文件 backup_all.ser
+        File file = new File(path);
+        if (file.isDirectory()) {
+            File auto = new File(file, "backup_all.ser");
+            if (auto.exists()) {
+                System.out.println("输入的是目录，将使用目录下的备份文件：" + auto.getAbsolutePath());
+                path = auto.getPath();
+                file = auto;
+            } else {
+                System.out.println("该路径是目录，且目录下没有 backup_all.ser：" + file.getAbsolutePath());
+                ConsoleUtil.pressEnterToContinue();
+                return;
+            }
+        }
         // 恢复前校验备份文件是否存在，避免确认后才失败
-        if (!new File(path).exists()) {
-            System.out.println("备份文件不存在：" + new File(path).getAbsolutePath());
+        if (!file.exists()) {
+            System.out.println("备份文件不存在：" + file.getAbsolutePath());
             System.out.println("请检查路径后重试。");
             ConsoleUtil.pressEnterToContinue();
             return;

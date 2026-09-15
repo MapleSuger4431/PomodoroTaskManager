@@ -57,17 +57,25 @@ public class BackupService {
                 data.getRecords().addAll(recordDao.findByUserId(uid));
                 data.getDailyRecords().addAll(dailyDao.findByUserId(uid));
             }
-            // 自定义路径支持：若路径中的上级目录不存在则自动创建，保证任意自定义路径可用
+            // 自定义路径支持：输入的是已存在的目录时，自动落到该目录下的默认备份文件
             File file = new File(filePath);
-            File parent = file.getAbsoluteFile().getParentFile();
-            if (parent != null && !parent.exists()) {
-                parent.mkdirs();
+            if (file.isDirectory()) {
+                file = new File(file, "backup_all.ser");
+                System.out.println("输入的是目录，将备份到该目录下的文件：" + file.getAbsolutePath());
             }
-            SerializeUtil.writeObject(data, filePath);
+            // 自定义路径支持：若路径中的上级目录不存在则自动创建，保证任意自定义路径可用
+            File parent = file.getAbsoluteFile().getParentFile();
+            if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                System.out.println("备份失败：无法创建目录 " + parent.getAbsolutePath() + "（可能没有写权限）");
+                return;
+            }
+            SerializeUtil.writeObject(data, file.getPath());
             System.out.println("备份成功！已备份全部用户数据，文件路径：" + file.getAbsoluteFile());
         } catch (Exception e) {
-            System.out.println("备份失败：" + e.getMessage());
-            e.printStackTrace();
+            // 不再打印堆栈，改为友好提示，便于控制台使用
+            String reason = (e.getMessage() == null || e.getMessage().isEmpty()) ? e.toString() : e.getMessage();
+            System.out.println("备份失败：" + reason);
+            System.out.println("提示：请确认该位置有写权限、文件未被其他程序占用，或换一个包含文件名的完整路径。");
         }
     }
 
