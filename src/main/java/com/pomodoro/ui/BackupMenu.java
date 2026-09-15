@@ -29,7 +29,7 @@ public class BackupMenu {
             if (choice == 1) {
                 handleBackup(userId);
             } else if (choice == 2) {
-                handleRestore();
+                handleRestore(userId);
             } else if (choice == 0) {
                 // 返回前清屏，把本次菜单与操作的全部历史输出清除
                 clearScreen();
@@ -55,13 +55,14 @@ public class BackupMenu {
     }
 
     /**
-     * 处理数据恢复：读取备份文件路径，二次确认后执行恢复
+     * 处理数据恢复：读取恢复文件路径（回车使用默认路径），二次确认后执行恢复
      */
-    private void handleRestore() {
-        String path = ConsoleUtil.readLine("请输入备份文件路径：");
+    private void handleRestore(String userId) {
+        // 默认恢复文件路径：与备份默认路径一致，即项目运行目录下的 backup_<userId>.ser
+        String defaultPath = "backup_" + userId + ".ser";
+        String path = ConsoleUtil.readLine("请输入备份文件路径（直接回车使用默认 " + defaultPath + "）：");
         if (path.isEmpty()) {
-            System.out.println("文件路径不能为空。");
-            return;
+            path = defaultPath;
         }
         // 恢复会清空并覆盖当前全部数据，必须二次确认
         boolean confirmed = ConsoleUtil.readYesNo("警告：恢复会覆盖当前所有数据，确认？(y/n)");
